@@ -1,0 +1,51 @@
+name: Build Pico Microphone
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Скачиваем твой код
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    # 2. Скачиваем Pico SDK (без него ничего не соберется)
+    - name: Checkout Pico SDK
+      uses: actions/checkout@v3
+      with:
+        repository: raspberrypi/pico-sdk
+        path: pico-sdk
+        submodules: recursive
+
+    # 3. Устанавливаем компилятор для ARM (Pico)
+    - name: Install Toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential cmake
+
+    # 4. Сборка проекта
+    - name: Build
+      run: |
+        # Указываем, где лежит SDK
+        export PICO_SDK_PATH=$GITHUB_WORKSPACE/pico-sdk
+        
+        # Создаем папку для сборки
+        mkdir build
+        cd build
+        
+        # Запускаем CMake
+        cmake ..
+        
+        # Компилируем
+        make
+
+    # 5. Сохраняем готовый файл .uf2, чтобы ты мог его скачать
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pico_microphone_firmware
+        path: build/*.uf2
