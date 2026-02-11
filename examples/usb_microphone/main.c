@@ -2,43 +2,40 @@
  * Copyright (c) 2021 Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
- * 
- * This examples creates a USB Microphone device using the TinyUSB
- * library and captures data from a PDM microphone using a sample
- * rate of 16 kHz, to be sent the to PC.
- * 
- * The USB microphone code is based on the TinyUSB audio_test example.
- * 
- * https://github.com/hathach/tinyusb/tree/master/examples/device/audio_test
+ * * MODIFIED FOR I2S MICROPHONE (INMP441)
+ * PINS: BCLK=10, LRCLK=11, DATA=12
  */
 
-#include "pico/pdm_microphone.h"
-
+// ВАЖНО: Подключаем библиотеку I2S, а не PDM
+#include "pico/i2s_microphone.h"
 #include "usb_microphone.h"
 
 // configuration
-const struct pdm_microphone_config config = {
-  .gpio_data = 2,
-  .gpio_clk = 3,
+// Используем структуру для I2S
+const struct i2s_microphone_config config = {
+  .gpio_data = 12,   // Твой пин SD
+  .gpio_bclk = 10,   // Твой пин SCK
+  .gpio_lrclk = 11,  // Твой пин WS
   .pio = pio0,
   .pio_sm = 0,
   .sample_rate = SAMPLE_RATE,
-  .sample_buffer_size = SAMPLE_BUFFER_SIZE,
+  //.sample_buffer_size = SAMPLE_BUFFER_SIZE, // В некоторых версиях либы это не нужно, но если ошибка - раскомментируй
 };
 
 // variables
-uint16_t sample_buffer[SAMPLE_BUFFER_SIZE];
+int16_t sample_buffer[SAMPLE_BUFFER_SIZE]; // I2S обычно отдает int16_t (или int32_t), а не uint16_t
 
 // callback functions
-void on_pdm_samples_ready();
+void on_i2s_samples_ready();
 void on_usb_microphone_tx_ready();
 
 int main(void)
 {
-  // initialize and start the PDM microphone
-  pdm_microphone_init(&config);
-  pdm_microphone_set_samples_ready_handler(on_pdm_samples_ready);
-  pdm_microphone_start();
+  // initialize and start the I2S microphone
+  // Меняем все функции с pdm_ на i2s_
+  i2s_microphone_init(&config);
+  i2s_microphone_set_samples_ready_handler(on_i2s_samples_ready);
+  i2s_microphone_start();
 
   // initialize the USB microphone interface
   usb_microphone_init();
@@ -52,13 +49,13 @@ int main(void)
   return 0;
 }
 
-void on_pdm_samples_ready()
+void on_i2s_samples_ready()
 {
   // Callback from library when all the samples in the library
   // internal sample buffer are ready for reading.
   //
   // Read new samples into local buffer.
-  pdm_microphone_read(sample_buffer, SAMPLE_BUFFER_SIZE);
+  i2s_microphone_read(sample_buffer, SAMPLE_BUFFER_SIZE);
 }
 
 void on_usb_microphone_tx_ready()
