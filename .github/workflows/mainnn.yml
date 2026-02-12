@@ -1,0 +1,30 @@
+name: Build Pico Microphone
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Toolchain
+      run: |
+        sudo apt update
+        sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential python3 libstdc++-arm-none-eabi-newlib
+
+    - name: Setup Pico SDK
+      run: |
+        git clone https://github.com/raspberrypi/pico-sdk.git
+        cd pico-sdk
+        git submodule update --init
+        echo "PICO_SDK_PATH=$PWD" >> $GITHUB_ENV
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
